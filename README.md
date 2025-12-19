@@ -19,3 +19,4 @@ bash <(curl -sL https://raw.githubusercontent.com/AzurePath749/vps_init/main/vps
 建议新机器拿到手后：
  先运行本脚本 (`vps_init.sh`) 进行初始化。
 
+<img width="608" height="408" alt="image" src="https://github.com/user-attachments/assets/8c69c662-47f5-4a4b-9e5c-db62f1c37443" />

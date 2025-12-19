@@ -13,6 +13,7 @@
 
 ```bash
 bash <(curl -sL https://raw.githubusercontent.com/AzurePath749/socks5-installer/main/vps_init.sh)
+```
 
 ## 💡 最佳实践
 建议新机器拿到手后：

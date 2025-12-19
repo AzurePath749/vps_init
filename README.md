@@ -12,7 +12,7 @@
 ## 📦 使用方法
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/AzurePath749/socks5-installer/main/vps_init.sh)
+bash <(curl -sL https://raw.githubusercontent.com/AzurePath749/vps_init/main/vps_init.sh)
 ```
 
 ## 💡 最佳实践

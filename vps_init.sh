@@ -4,7 +4,7 @@ set -euo pipefail
 # ==================================================
 # Project: VPS Initialization & Hardening Script
 # Author:  AzurePath749
-# Version: 1.3 (Robust & Idempotent)
+# Version: 1.3 (Stable)
 # Description: One-click setup for new VPS (Update, BBR, Swap, Timezone)
 # ==================================================
 
@@ -53,22 +53,22 @@ check_root() {
 # 智能等待包管理器锁释放 (防止 apt/yum 被占用报错)
 wait_for_lock() {
     local i=0
-    if [ -f /etc/debian_version ]; then
+    if [[ -f /etc/debian_version ]]; then
         while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
             echo -ne "${YELLOW}检测到 apt 进程被占用，正在等待释放... [$i s]\r${PLAIN}"
             sleep 1
             i=$((i + 1))
-            [ $i -gt 300 ] && { echo ""; log_error "等待超时(5分钟)，请手动检查 apt 进程"; exit 1; }
+            [[ $i -gt 300 ]] && { echo ""; log_error "等待超时(5分钟)，请手动检查 apt 进程"; exit 1; }
         done
-        [ $i -gt 0 ] && echo ""
-    elif [ -f /etc/redhat-release ]; then
-        while [ -f /var/run/yum.pid ]; do
+        [[ $i -gt 0 ]] && echo ""
+    elif [[ -f /etc/redhat-release ]]; then
+        while [[ -f /var/run/yum.pid ]]; do
             echo -ne "${YELLOW}检测到 yum 进程被占用，正在等待释放... [$i s]\r${PLAIN}"
             sleep 1
             i=$((i + 1))
-            [ $i -gt 300 ] && { echo ""; log_error "等待超时(5分钟)，请手动检查 yum 进程"; exit 1; }
+            [[ $i -gt 300 ]] && { echo ""; log_error "等待超时(5分钟)，请手动检查 yum 进程"; exit 1; }
         done
-        [ $i -gt 0 ] && echo ""
+        [[ $i -gt 0 ]] && echo ""
     fi
 }
 
@@ -211,6 +211,9 @@ add_swap() {
             swap_size=1024
         fi
     fi
+    if [[ "$swap_size" -lt 1 ]]; then
+        swap_size=1024
+    fi
 
     local required=$((swap_size + 500))
     if [ "$disk_avail" -lt "$required" ]; then
@@ -227,8 +230,8 @@ add_swap() {
         dd if=/dev/zero of=/swapfile bs=1M count="$swap_size"
     fi
 
-    mkswap /swapfile
-    swapon /swapfile
+    mkswap /swapfile || { log_error "mkswap 失败"; rm -f /swapfile; return 1; }
+    swapon /swapfile || { log_error "swapon 失败"; rm -f /swapfile; return 1; }
 
     if ! grep -q '^/swapfile' /etc/fstab; then
         echo '/swapfile none swap sw 0 0' >> /etc/fstab
@@ -254,30 +257,34 @@ run_all() {
 
 # 6. 交互菜单
 main_menu() {
-    clear
-    echo -e "################################################"
-    echo -e "#     VPS 一键初始化脚本 (System Init)         #"
-    echo -e "#     Author: AzurePath749                     #"
-    echo -e "#     Version: 1.3 (Stable)                    #"
-    echo -e "################################################"
-    echo -e "1. 全自动初始化 (推荐，含所有优化)"
-    echo -e "2. 单独开启 BBR"
-    echo -e "3. 单独增加 Swap (自适应)"
-    echo -e "4. 单独修改时区 ($TIMEZONE)"
-    echo -e "5. 系统更新 (Update & Upgrade)"
-    echo -e "0. 退出"
-    echo -e "################################################"
+    while true; do
+        clear
+        echo -e "################################################"
+        echo -e "#     VPS 一键初始化脚本 (System Init)         #"
+        echo -e "#     Author: AzurePath749                     #"
+        echo -e "#     Version: 1.3 (Stable)                    #"
+        echo -e "################################################"
+        echo -e "1. 全自动初始化 (推荐，含所有优化)"
+        echo -e "2. 单独开启 BBR"
+        echo -e "3. 单独增加 Swap (自适应)"
+        echo -e "4. 单独修改时区 ($TIMEZONE)"
+        echo -e "5. 系统更新 (Update & Upgrade)"
+        echo -e "0. 退出"
+        echo -e "################################################"
 
-    read -rp "请选择 [0-5]: " choice || true
-    case "$choice" in
-        1) run_all ;;
-        2) enable_bbr ;;
-        3) add_swap ;;
-        4) set_timezone ;;
-        5) update_system ;;
-        0) exit 0 ;;
-        *) log_error "无效选择"; exit 1 ;;
-    esac
+        read -rp "请选择 [0-5]: " choice || true
+        case "$choice" in
+            1) run_all ;;
+            2) enable_bbr ;;
+            3) add_swap ;;
+            4) set_timezone ;;
+            5) update_system ;;
+            0) exit 0 ;;
+            *) log_error "无效选择，请重新输入" ;;
+        esac
+        echo ""
+        read -rp "按回车键继续..." || true
+    done
 }
 
 usage() {
@@ -300,7 +307,7 @@ Options:
 
 示例:
   ./vps_init.sh --all
-  ./vps_init.sh --bbr --swap 2048
+  ./vps_init.sh --swap 2048
   ./vps_init.sh --timezone America/New_York
 USAGE
 }

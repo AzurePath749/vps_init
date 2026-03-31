@@ -451,21 +451,6 @@ run_all() {
     return $failed
 }
 
-# 仅执行内核+内存+网络+limits优化 (不含更新和swap)
-run_optimize() {
-    local failed=0
-    optimize_kernel   || { log_error "内核参数优化失败"; failed=1; }
-    optimize_limits   || { log_error "ulimit 优化失败"; failed=1; }
-    optimize_journald || { log_error "journald 优化失败"; failed=1; }
-    optimize_cpu      || { log_error "CPU 优化失败"; failed=1; }
-    if [ $failed -eq 0 ]; then
-        log_success "优化完成！建议重启服务器: reboot"
-    else
-        log_warn "部分优化步骤失败，请检查上方日志。"
-    fi
-    return $failed
-}
-
 # =====================================================
 # 8. 系统检测与主机信息
 # =====================================================
@@ -626,22 +611,19 @@ usage() {
 Usage: vps_init.sh [OPTIONS]
 
 Options:
-  --all                一键全部优化 (更新+Swap+内核+限制+CPU)
-  --update             仅系统更新 + VPN 依赖安装
-  --swap [SIZE_MB]     仅配置 Swap (默认: 自适应内存大小)
-  --optimize           仅内核+内存+网络+限制优化 (不含更新和Swap)
-  --timezone [TZ]      设置时区 (默认: Asia/Shanghai)
-  -h, --help           显示帮助信息
-
-不带参数时进入交互菜单。
+  无参数            进入交互菜单
+  --all            一键全部优化（跳过菜单，直接执行）
+  --swap [SIZE_MB] 仅配置 Swap (默认: 自适应内存大小)
+  --timezone [TZ]  设置时区 (默认: Asia/Shanghai)
+  -h, --help       显示帮助信息
 
 环境变量:
   TIMEZONE             设置默认时区 (默认: Asia/Shanghai)
   SWAP_SIZE            设置 Swap 大小 MB (默认: 自适应)
 
 示例:
-  ./vps_init.sh --all
-  ./vps_init.sh --optimize
+  ./vps_init.sh            # 进入交互菜单
+  ./vps_init.sh --all      # 一键全部优化
   ./vps_init.sh --swap 2048
   ./vps_init.sh --timezone America/New_York
 USAGE
@@ -655,12 +637,6 @@ while [[ $# -gt 0 ]]; do
         --all)
             run_all; exit $?
             ;;
-        --update)
-            update_system; exit $?
-            ;;
-        --bbr)
-            optimize_kernel; exit $?
-            ;;
         --swap)
             shift
             if [[ $# -gt 0 && "${1:-}" != -* ]]; then
@@ -672,9 +648,6 @@ while [[ $# -gt 0 ]]; do
                 fi
             fi
             add_swap; exit $?
-            ;;
-        --optimize)
-            run_optimize; exit $?
             ;;
         --timezone)
             shift

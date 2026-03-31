@@ -1,6 +1,6 @@
 # VPS 小主机一键优化脚本
 
-专门为 **1GB 内存 / 双核 CPU** 小型 VPS 优化的初始化脚本。
+专门为 **512MB~2GB** 内存小型 VPS 优化的初始化脚本。
 为后续安装 **OpenVPN** / **OpenClash** 做系统级准备。
 
 ## 功能
@@ -15,7 +15,7 @@
 |------|------|
 | **系统更新** | 更新软件包 + 安装基础工具和 VPN 依赖 (`iptables`, `socat`, `qrencode` 等) |
 | **时区设置** | 默认 `Asia/Shanghai` |
-| **Swap 虚拟内存** | 自适应大小（1GB RAM → 2GB Swap），防止 OOM |
+| **Swap 虚拟内存** | 自适应大小（512MB → 2GB / 1GB → 2GB / 2GB → 2GB），最大 4GB，防止 OOM |
 | **内核参数调优** | vm.swappiness / vfs_cache_pressure / TCP 缓冲 / BBR / IP 转发 / 连接跟踪 |
 | **ulimit 优化** | 文件描述符上限提升至 65535 |
 | **journald 限制** | 日志最大 50MB，节省磁盘 |
@@ -66,9 +66,10 @@ SWAP_SIZE=2048            指定 Swap 大小 (MB)
 - Alpine Linux
 - 其他使用 apt / dnf / yum / apk 的发行版
 
-## 优化效果参考 (1GB RAM / 双核 VPS)
+## 优化效果参考 (512MB~2GB VPS)
 
 ```
-优化前:  OOM 频发, 网络抖动, VPN 连接数受限
-优化后:  2GB Swap 保障, BBR+缓冲优化, 65535 连接跟踪, IP 转发就绪
+512MB:  分配 2GB Swap，min_free_kbytes=16MB (防止极低内存崩溃)
+1GB:    分配 2GB Swap，swappiness=10 (优先用 RAM)
+2GB:    分配 2GB Swap，65535 连接跟踪，IP 转发就绪
 ```

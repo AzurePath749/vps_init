@@ -5,7 +5,7 @@ set -euo pipefail
 # Project: VPS Initialization & Optimization Script
 # Author:  AzurePath749
 # Version: 2.0 (Stable)
-# Description: 一键优化 VPS 小主机 (1GB RAM / 双核 CPU)
+# Description: 一键优化 VPS 小主机 (512MB~2GB RAM / 低核 CPU)
 #              为 OpenVPN / OpenClash 安装做准备
 # ==================================================
 
@@ -215,19 +215,27 @@ add_swap() {
         return 1
     fi
     if [[ -z "$swap_size" ]]; then
-        if [ "$mem_total" -lt 1024 ]; then
+        if [ "$mem_total" -le 512 ]; then
+            swap_size=2048
+        elif [ "$mem_total" -le 1024 ]; then
             swap_size=$((mem_total * 2))
-        elif [ "$mem_total" -lt 4096 ]; then
+        elif [ "$mem_total" -le 2048 ]; then
             swap_size=$mem_total
-        else
+        elif [ "$mem_total" -lt 4096 ]; then
             swap_size=1024
+        else
+            swap_size=512
         fi
     fi
     if [[ "$swap_size" -lt 1 ]]; then
         swap_size=1024
     fi
+    # 512MB~2GB 小机器: swap 上限 4096MB，防止小磁盘被撑满
+    if [[ "$swap_size" -gt 4096 ]]; then
+        swap_size=4096
+    fi
 
-    local required=$((swap_size + 500))
+    local required=$((swap_size + 300))
     if [ "$disk_avail" -lt "$required" ]; then
         log_error "磁盘空间不足 (剩余 ${disk_avail}MB，需要 ${required}MB)，跳过创建 Swap。"
         return 1
@@ -262,7 +270,7 @@ add_swap() {
 # 4. 内核参数全面调优 (内存/网络/连接/VPN)
 # =====================================================
 optimize_kernel() {
-    log_info "正在配置内核优化参数 (1GB RAM / 双核 / VPN)..."
+    log_info "正在配置内核优化参数 (512MB~2GB RAM / VPN)..."
 
     # 检查内核版本，BBR 需要 >= 4.9
     local kv_major=0 kv_minor=0
@@ -284,13 +292,13 @@ optimize_kernel() {
     mkdir -p /etc/sysctl.d
     cat > "$SYSCTL_CONF" << 'EOF'
 # ==================================================
-# VPS 小主机优化 (1GB RAM / 双核 / VPN 预配置)
+# VPS 小主机优化 (512MB~2GB RAM / VPN 预配置)
 # ==================================================
 
-# --- 内存优化 ---
+# --- 内存优化 (针对 512MB~2GB) ---
 vm.swappiness=10
 vm.vfs_cache_pressure=50
-vm.min_free_kbytes=32768
+vm.min_free_kbytes=16384
 
 # --- 文件描述符 ---
 fs.file-max=65535
@@ -582,7 +590,7 @@ main_menu() {
         show_system_info
         echo ""
         echo -e "################################################"
-        echo -e "#   VPS 小主机一键优化脚本 (1GB/双核)          #"
+        echo -e "#   VPS 小主机一键优化脚本 (512MB~2GB)          #"
         echo -e "#   Author:  AzurePath749                      #"
         echo -e "#   Version: 2.0 (Stable)                      #"
         echo -e "#   Target: OpenVPN / OpenClash 准备           #"

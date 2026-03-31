@@ -210,6 +210,10 @@ add_swap() {
     mem_total=${mem_total:-0}
 
     local swap_size="${SWAP_SIZE:-}"
+    if [[ -n "$swap_size" && ! "$swap_size" =~ ^[0-9]+$ ]]; then
+        log_error "SWAP_SIZE 环境变量非法: '$swap_size'，必须是正整数"
+        return 1
+    fi
     if [[ -z "$swap_size" ]]; then
         if [ "$mem_total" -lt 1024 ]; then
             swap_size=$((mem_total * 2))
@@ -230,7 +234,13 @@ add_swap() {
     fi
 
     log_info "正在创建 ${swap_size}MB 虚拟内存..."
-    touch /swapfile && chmod 600 /swapfile
+    # 安全: 使用 install 直接以 600 权限创建，避免 touch+chmod 之间的权限窗口
+    # 同时确保 /swapfile 不是符号链接 (防止 symlink 攻击)
+    if [[ -L /swapfile ]]; then
+        log_error "/swapfile 是符号链接，疑似安全风险，拒绝操作。"
+        return 1
+    fi
+    install -m 600 /dev/null /swapfile
 
     if dd --help 2>&1 | grep -q 'status=progress'; then
         dd if=/dev/zero of=/swapfile bs=1M count="$swap_size" status=progress

@@ -32,22 +32,19 @@
 ## 使用方法
 
 ```bash
-# 一键全部优化 (推荐)
-bash <(curl -sL https://raw.githubusercontent.com/AzurePath749/vps_init/main/vps_init.sh) --all
-
-# 交互菜单 (查看主机信息 + 选择优化项)
 bash <(curl -sL https://raw.githubusercontent.com/AzurePath749/vps_init/main/vps_init.sh)
 ```
+
+进入后选择 `1` 一键全部优化，或按需选择单项操作。
 
 ## CLI 参数
 
 ```
---all                一键全部优化 (推荐)
---update             仅系统更新 + VPN 依赖安装
---swap [SIZE_MB]     仅配置 Swap (默认自适应)
---optimize           仅内核+内存+网络+限制优化
---timezone [TZ]      设置时区 (默认 Asia/Shanghai)
--h, --help           显示帮助
+无参数            进入交互菜单
+--all            一键全部优化（跳过菜单，直接执行）
+--swap [SIZE_MB] 仅配置 Swap
+--timezone [TZ]  设置时区 (默认 Asia/Shanghai)
+-h, --help       显示帮助
 ```
 
 ## 环境变量

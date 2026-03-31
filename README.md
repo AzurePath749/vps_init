@@ -1,22 +1,74 @@
-# 🛠️ VPS 一键初始化脚本 (VPS Init Script)
+# VPS 小主机一键优化脚本
 
-买到新服务器不知道该干什么？这个脚本帮你一键完成所有“装修”工作。
-特别适合 **512MB/1GB 小内存** VPS 的优化。
+专门为 **1GB 内存 / 双核 CPU** 小型 VPS 优化的初始化脚本。
+为后续安装 **OpenVPN** / **OpenClash** 做系统级准备。
 
-## ✨ 功能特点
-1. **📦 系统更新**: 自动 `apt update` / `yum update` 并安装常用工具 (`vim`, `curl`, `git`, `htop` 等)。
-2. **🚀 开启 BBR**: 自动修改内核参数开启 BBR 拥塞控制，提升网络速度。
-3. **💾 自动 Swap**: 智能检测，如果没 Swap 自动创建 1GB 虚拟内存，**防止 Gost/SOCKS5 进程因内存不足被杀**。
-4. **⏰ 修正时区**: 自动修改为 `Asia/Shanghai`，看日志不再头大。
+## 功能
 
-## 📦 使用方法
+### 系统检测 (首页展示)
+- 自动检测并显示：操作系统、内核、CPU、内存、Swap、磁盘、公网 IP、虚拟化类型、负载
+- 兼容 Debian / Ubuntu / CentOS / RHEL / Fedora / Alpine 等主流发行版
+
+### 一键优化 (7 大模块)
+
+| 模块 | 说明 |
+|------|------|
+| **系统更新** | 更新软件包 + 安装基础工具和 VPN 依赖 (`iptables`, `socat`, `qrencode` 等) |
+| **时区设置** | 默认 `Asia/Shanghai` |
+| **Swap 虚拟内存** | 自适应大小（1GB RAM → 2GB Swap），防止 OOM |
+| **内核参数调优** | vm.swappiness / vfs_cache_pressure / TCP 缓冲 / BBR / IP 转发 / 连接跟踪 |
+| **ulimit 优化** | 文件描述符上限提升至 65535 |
+| **journald 限制** | 日志最大 50MB，节省磁盘 |
+| **CPU 性能模式** | 设置 governor 为 performance |
+
+### 为 OpenVPN / OpenClash 的准备项
+- `net.ipv4.ip_forward=1` / `net.ipv6.conf.all.forwarding=1` — IP 转发
+- `net.netfilter.nf_conntrack_max=65535` — NAT 连接跟踪
+- Socket 缓冲区 16MB — 提升 VPN 吞吐量
+- TCP Fast Open / BBR — 加速网络
+- 端口范围扩展 `1024-65535`
+- 预装 `iptables-persistent`, `socat`, `qrencode` 等 VPN 工具
+
+## 使用方法
 
 ```bash
+# 一键全部优化 (推荐)
+bash <(curl -sL https://raw.githubusercontent.com/AzurePath749/vps_init/main/vps_init.sh) --all
+
+# 交互菜单 (查看主机信息 + 选择优化项)
 bash <(curl -sL https://raw.githubusercontent.com/AzurePath749/vps_init/main/vps_init.sh)
 ```
 
-## 💡 最佳实践
-建议新机器拿到手后：
- 先运行本脚本 (`vps_init.sh`) 进行初始化。
+## CLI 参数
 
-<img width="608" height="408" alt="image" src="https://github.com/user-attachments/assets/8c69c662-47f5-4a4b-9e5c-db62f1c37443" />
+```
+--all                一键全部优化 (推荐)
+--update             仅系统更新 + VPN 依赖安装
+--swap [SIZE_MB]     仅配置 Swap (默认自适应)
+--optimize           仅内核+内存+网络+限制优化
+--timezone [TZ]      设置时区 (默认 Asia/Shanghai)
+-h, --help           显示帮助
+```
+
+## 环境变量
+
+```
+TIMEZONE=Asia/Shanghai    默认时区
+SWAP_SIZE=2048            指定 Swap 大小 (MB)
+```
+
+## 兼容系统
+
+- Debian 9+
+- Ubuntu 16.04+
+- CentOS 7/8/9
+- RHEL / Fedora
+- Alpine Linux
+- 其他使用 apt / dnf / yum / apk 的发行版
+
+## 优化效果参考 (1GB RAM / 双核 VPS)
+
+```
+优化前:  OOM 频发, 网络抖动, VPN 连接数受限
+优化后:  2GB Swap 保障, BBR+缓冲优化, 65535 连接跟踪, IP 转发就绪
+```

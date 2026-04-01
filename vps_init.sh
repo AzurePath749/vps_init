@@ -64,7 +64,7 @@ wait_for_lock() {
         done
         [[ $i -gt 0 ]] && echo ""
     elif [[ -f /etc/redhat-release ]]; then
-        while [[ -f /var/run/yum.pid ]]; do
+        while [[ -f /var/run/yum.pid ]] || [[ -f /var/run/dnf.pid ]]; do
             echo -ne "${YELLOW}检测到 yum 进程被占用，正在等待释放... [$i s]\r${PLAIN}"
             sleep 1
             i=$((i + 1))
@@ -284,6 +284,13 @@ optimize_kernel() {
     if [[ -f /etc/sysctl.d/99-bbr.conf ]]; then
         rm -f /etc/sysctl.d/99-bbr.conf
         log_info "已清理旧的 BBR 配置文件。"
+    fi
+
+    # 加载 BBR 内核模块 (需在写入 sysctl 配置前完成)
+    if modprobe tcp_bbr 2>/dev/null; then
+        log_info "tcp_bbr 模块已加载。"
+    else
+        log_warn "tcp_bbr 模块加载失败 (可能已内置或内核不支持)，继续..."
     fi
 
     # 备份
@@ -507,7 +514,7 @@ detect_virt() {
 # 显示完整系统信息
 show_system_info() {
     local os_name kernel cpu_model cpu_cores mem_total mem_used mem_free
-    local disk_total disk_used swap_total swap_used pub_ip hostname_val arch virt load avg_load
+    local disk_total disk_used swap_total swap_used pub_ip hostname_val arch virt load uptime_str
 
     os_name=$(detect_os)
     kernel=$(uname -r)
@@ -546,7 +553,7 @@ show_system_info() {
     load=$(cat /proc/loadavg 2>/dev/null | awk '{print $1" "$2" "$3}') || load="N/A"
 
     # 运行时间
-    avg_load=$(uptime -p 2>/dev/null || echo "N/A")
+    uptime_str=$(uptime -p 2>/dev/null || echo "N/A")
 
     echo -e "${GREEN}============================================"
     echo -e "    VPS 主机信息"
@@ -562,7 +569,7 @@ show_system_info() {
     echo -e "  Swap:     ${BLUE}${swap_used}MB / ${swap_total}MB${PLAIN}"
     echo -e "  磁盘(/):  ${BLUE}$disk_used / $disk_total${PLAIN}"
     echo -e "  负载:     ${BLUE}$load${PLAIN}"
-    echo -e "  运行时间: ${BLUE}$avg_load${PLAIN}"
+    echo -e "  运行时间: ${BLUE}$uptime_str${PLAIN}"
     echo -e "${GREEN}============================================${PLAIN}"
 }
 
@@ -639,13 +646,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --swap)
             shift
-            if [[ $# -gt 0 && "${1:-}" != -* ]]; then
-                if [[ "$1" =~ ^[0-9]+$ ]]; then
-                    SWAP_SIZE="$1"
-                else
-                    log_error "Swap 大小必须是正整数: $1"
-                    exit 1
-                fi
+            if [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]]; then
+                SWAP_SIZE="$1"
+                shift
             fi
             add_swap; exit $?
             ;;

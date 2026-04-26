@@ -1,7 +1,9 @@
-# VPS 小主机一键优化脚本
+# 🖥️ VPS 小主机一键优化脚本
 
-专门为 **512MB~2GB** 内存小型 VPS 优化的初始化脚本。
-为后续安装 **OpenVPN** / **OpenClash** 做系统级准备。
+![Shell](https://img.shields.io/badge/language-Shell-orange?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+
+> 专门为 **512MB~2GB** 内存小型 VPS 优化的初始化脚本，为后续安装 **OpenVPN** / **OpenClash** 做系统级准备。
 
 ## 功能
 
